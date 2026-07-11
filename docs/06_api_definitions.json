@@ -1,0 +1,169 @@
+{
+  "core.document_uploader.DocumentUploader": 
+  {
+    "methods": {
+      "__init__": {
+        "parameters": {
+          "upload_dir": {
+            "type": "str | Path",
+            "default": "data/uploads"
+          }
+        }
+      },
+      "upload_files": {
+        "parameters": {
+          "files": {
+            "type": "list[streamlit.runtime.uploaded_file_manager.UploadedFile | io.BytesIO]"
+          }
+        },
+        "returns": "list[models.schemas.Document]",
+        "raises": [
+          "utils.error_handling.InvalidFileError"
+        ]
+      },
+      "get_file_list": {
+        "parameters": {},
+        "returns": "list[models.schemas.Document]"
+      },
+      "remove_file": {
+        "parameters": {
+          "file_id": {
+            "type": "str"
+          }
+        },
+        "returns": "bool"
+      }
+    }
+  },
+
+  
+  "core.doc_parser.DocParser": {
+    "methods": {
+      "parse": {
+        "parameters": {
+          "file_path": {
+            "type": "str | Path"
+          }
+        },
+        "returns": "str",
+        "raises": [
+          "FileNotFoundError",
+          "ValueError",
+          "RuntimeError"
+        ]
+      },
+      "extract_entities": {
+        "parameters": {
+          "text": {
+            "type": "str"
+          }
+        },
+        "returns": {
+          "type": "dict[str, list[str]]",
+          "structure": {
+            "entities": "list[str]",
+            "topics": "list[str]",
+            "key_terms": "list[str]"
+          }
+        }
+      }
+    }
+  },
+  "core.embedder.Embedder": {
+    "methods": {
+      "embed": {
+        "parameters": {
+          "text": {
+            "type": "str"
+          }
+        },
+        "returns": "list[float]",
+        "raises": [
+          "utils.error_handling.EmbeddingFailureError"
+        ]
+      }
+    }
+  },
+  "core.vector_db_client.VectorDBClient": {
+    "methods": {
+      "store_embedding": {
+        "parameters": {
+          "doc_id": {
+            "type": "str"
+          },
+          "embedding": {
+            "type": "list[float]"
+          },
+          "metadata": {
+            "type": "dict[str, Any]"
+          }
+        },
+        "returns": "bool",
+        "raises": [
+          "utils.error_handling.VectorDBError"
+        ]
+      },
+      "search": {
+        "parameters": {
+          "query_vector": {
+            "type": "list[float]"
+          },
+          "top_k": {
+            "type": "int",
+            "default": 5
+          }
+        },
+        "returns": "list[models.schemas.RetrievalResult]",
+        "raises": [
+          "utils.error_handling.VectorDBError"
+        ]
+      }
+    }
+  },
+  "core.rag_engine.RAGEngine": {
+    "methods": {
+      "retrieve": {
+        "parameters": {
+          "query_text": {
+            "type": "str"
+          },
+          "top_k": {
+            "type": "int",
+            "default": 5
+          }
+        },
+        "returns": "list[models.schemas.RetrievalResult]"
+      },
+      "generate_answer": {
+        "parameters": {
+          "query_text": {
+            "type": "str"
+          },
+          "retrieved_context": {
+            "type": "list[models.schemas.RetrievalResult]"
+          }
+        },
+        "returns": "models.schemas.Explanation",
+        "raises": [
+          "utils.error_handling.NoResultsError",
+          "utils.error_handling.AIGenerationFailureError"
+        ]
+      }
+    }
+  },
+  "core.ai_generator.AIGenerator": {
+    "methods": {
+      "explain_relationships": {
+        "parameters": {
+          "prompt": {
+            "type": "str"
+          }
+        },
+        "returns": "str",
+        "raises": [
+          "utils.error_handling.AIGenerationFailureError"
+        ]
+      }
+    }
+  }
+}

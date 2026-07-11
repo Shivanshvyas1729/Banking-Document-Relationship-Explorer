@@ -1,0 +1,56 @@
+BankDocLink Architecture Map
+============================
+
+c:/Users/DELL/Desktop/internship1
+│
+├── app.py                      # Main application execution entry point
+├── config.py                   # Global configurations (limits, model names, timeout limits)
+├── requirements.txt            # System python dependencies
+├── .env                        # Local environment credentials & API keys
+├── .agents/
+│   └── AGENTS.md               # Agentic rules and documentation master sequence
+│
+├── docs/
+│   ├── 01_scope.md             # Vision & high-level goals
+│   ├── 02_requirements.md      # User stories & functional specs
+│   ├── 03_schema.md            # Object & database schemas
+│   ├── 04_flowchart.md         # Step-by-step logic in plain English
+│   ├── 05_architecture.txt     # Current file map
+│   ├── 06_api_definitions.json # API method contracts
+│   └── 07_implementation_plan.md # Order of file execution
+│
+├── core/
+│   ├── __init__.py
+│   ├── document_uploader.py    # Session document registry, upload and deletion
+│   ├── doc_parser.py           # Document text parsing and NLP metadata extractors
+│   ├── embedder.py             # SentenceTransformers embedding generation
+│   ├── vector_db_client.py     # FAISS/Chroma search and index management
+│   ├── rag_engine.py           # Context retrieval and LLM prompt builder
+│   └── ai_generator.py         # LLM API request execution
+│
+├── models/
+│   ├── __init__.py
+│   └── schemas.py              # System domain schemas (Document, Embedding, etc.)
+│
+├── ui/
+│   ├── __init__.py
+│   ├── main_page.py            # Streamlit sidebar, uploader card, registry lists
+│   ├── document_view.py        # Expander-based NLP entities and topic tags
+│   ├── relationship_explorer.py # pyvis/networkx cross-document link network graph
+│   └── query_interface.py      # Q&A conversation interface with citations
+│
+├── utils/
+│   ├── __init__.py
+│   ├── error_handling.py       # Centralized exceptions and error-to-UI handlers
+│   └── logger.py               # Session-scoped logging configurations
+│
+├── tests/
+│   ├── __init__.py
+│   ├── test_document_uploader.py # Unit tests for uploading and removing files
+│   ├── test_doc_parser.py      # Unit tests for text parsing and entity extraction
+│   ├── test_embedder.py        # Unit tests for SentenceTransformers embeddings
+│   ├── test_vector_db_client.py # Unit tests for FAISS/Chroma indexing & queries
+│   └── test_rag_engine.py      # Unit tests for RAG pipeline integration
+│
+└── data/
+    └── uploads/                # Temporary directory for document files
