@@ -166,3 +166,7 @@ bankdoclink/
 * Clean folder organization
 * Suitable for production deployment
 * Extensible for additional document types and AI models
+
+
+
+
