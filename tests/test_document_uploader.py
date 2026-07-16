@@ -10,6 +10,7 @@ import sys
 # Ensure project root is in sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from unittest.mock import patch
 import shutil
 import tempfile
 from pathlib import Path
@@ -18,6 +19,30 @@ import pytest
 import config
 from core.document_uploader import DocumentUploader
 from utils.error_handling import InvalidFileError
+
+
+@pytest.fixture(autouse=True)
+def mock_pipeline_dependencies():
+    """Automatically mock parser, embedder, and vector DB client to prevent live API calls and parsing failures in uploader tests."""
+    with patch("core.embedder.OpenAIEmbeddings") as MockEmbeddings, \
+         patch("core.doc_parser.DocParser") as MockParser, \
+         patch("core.vector_db_client.VectorDBClient") as MockVectorDB:
+
+        # Setup mock parser return values
+        mock_parser_instance = MockParser.return_value
+        mock_parser_instance.parse.return_value = "Mocked parsed content"
+        mock_parser_instance.extract_entities.return_value = {
+            "entities": [],
+            "topics": [],
+            "key_terms": []
+        }
+
+        # Setup mock embedder — both single and batch methods
+        mock_emb_instance = MockEmbeddings.return_value
+        mock_emb_instance.embed_query.return_value = [0.1, 0.2, 0.3]
+        mock_emb_instance.embed_documents.return_value = [[0.1, 0.2, 0.3]]
+
+        yield
 
 
 class MockUploadedFile:
@@ -145,7 +170,7 @@ def test_document_schema_properties(temp_upload_dir):
     assert doc.metadata["parsed_entities"]["entities"] == ["Bank", "Branch"]
     
     # Verify content property links to page_content (get/set)
-    assert doc.content == ""
+    assert doc.content == "Mocked parsed content"
     doc.content = "New text content"
     assert doc.page_content == "New text content"
     assert doc.content == "New text content"

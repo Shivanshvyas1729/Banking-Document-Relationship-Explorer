@@ -17,7 +17,8 @@ c:/Users/DELL/Desktop/internship1
 │   ├── 04_flowchart.md         # Step-by-step logic in plain English
 │   ├── 05_architecture.txt     # Current file map
 │   ├── 06_api_definitions.json # API method contracts
-│   └── 07_implementation_plan.md # Order of file execution
+│   ├── 07_implementation_plan.md # Order of file execution
+│   └── memory.md               # Record of implementations and context
 │
 ├── core/
 │   ├── __init__.py

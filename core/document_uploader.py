@@ -22,6 +22,15 @@ class DocumentUploader:
         self.upload_dir.mkdir(parents=True, exist_ok=True)
         self.documents: Dict[str, Document] = {}
 
+        # Instantiate pipeline components
+        from core.doc_parser import DocParser
+        from core.embedder import Embedder
+        from core.vector_db_client import VectorDBClient
+
+        self.parser = DocParser()
+        self.embedder = Embedder()
+        self.vector_db = VectorDBClient()
+
     def upload_files(self, files: List) -> List[Document]:
         """
         Uploads and validates a batch of files.
@@ -91,8 +100,51 @@ class DocumentUploader:
                     }
                 }
             )
-            self.documents[doc_id] = document
-            uploaded_docs.append(document)
+
+            try:
+                # A. Parse document text
+                parsed_text = self.parser.parse(document.path)
+                document.content = parsed_text
+
+                # B. Extract entities, topics, and key terms
+                nlp_features = self.parser.extract_entities(parsed_text)
+                document.parsed_entities = nlp_features
+
+                # C. Split document text into chunks
+                from langchain_text_splitters import RecursiveCharacterTextSplitter
+                splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+                chunks = splitter.split_text(parsed_text)
+
+                # D. Embed all chunks in one batched API call, then bulk-insert
+                vectors = self.embedder.embed_batch(chunks)
+                items = [
+                    (
+                        doc_id,
+                        vectors[i],
+                        {
+                            "doc_id": doc_id,
+                            "name": filename,
+                            "text": chunks[i],
+                            "chunk_index": i,
+                        },
+                    )
+                    for i in range(len(chunks))
+                    if vectors[i]           # skip empty-vector slots (blank chunks)
+                ]
+                self.vector_db.store_embeddings_batch(items)
+
+                # E. Register document in session state if all steps succeed
+                self.documents[doc_id] = document
+                uploaded_docs.append(document)
+
+            except Exception as e:
+                # Cleanup saved file on error
+                if file_path.exists():
+                    try:
+                        file_path.unlink()
+                    except Exception:
+                        pass
+                raise e
 
         return uploaded_docs
 

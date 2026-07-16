@@ -1,4 +1,6 @@
 # Workspace Rules: Interconnected Document System
+first 
+give me file name that u code in the manner to guide me if a have to write everthing myself so from where to start every phase
 
 To ensure logical control and system architecture integrity, we follow the **Master Sequence** for project artifacts before writing code:
 

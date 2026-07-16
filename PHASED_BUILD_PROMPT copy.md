@@ -98,7 +98,19 @@ For each phase below:
 > }
 > ```
 >
-> Then implement `core/embedder.py`'s `Embedder.embed()` using `sentence-transformers` with `config.EMBEDDING_MODEL_NAME`.
+> Then implement `core/embedder.py`'s `Embedder` class:
+>
+> - `embed(text)` — single-query embedding (used for query-time retrieval only).
+> - `embed_batch(texts)` — **primary method for document indexing**. Sends all chunk
+>   texts in a single `embed_documents()` call (or multiple calls if
+>   `len(texts) > 2048` to respect OpenAI's per-request limit). Returns a
+>   list of vectors aligned by position; blank/whitespace slots receive `[]`.
+>
+> ⚠️ **Do NOT loop `embed(chunk)` per chunk during document upload.** Always
+> use `embed_batch(chunks)` once for the full chunk list, then call
+> `store_embeddings_batch()` once. The per-chunk loop pattern generates N
+> round-trips to the OpenAI API and N individual DB writes — it must not be
+> used in the indexing path.
 >
 > Wire failures through `utils/error_handling.py`'s `handle_embedding_failure()`.
 >
@@ -126,8 +138,15 @@ For each phase below:
 
 > Implement `core/vector_db_client.py`'s `VectorDBClient` class:
 >
-> - `store_embedding()`
-> - `search()`
+> - `store_embedding(doc_id, vector, metadata)` — kept for single-item / incremental use.
+> - `search(query_vector, top_k)` — similarity retrieval.
+> - `store_embeddings_batch(items)` — **required for document indexing**.
+>   Accepts a list of `(doc_id, vector, metadata)` tuples and writes them
+>   all in one backend call:
+>   - FAISS: `FAISS.from_embeddings(zip(texts, vectors), ...)` on first call,
+>     then `add_embeddings(...)` for subsequent batches.
+>   - ChromaDB: `collection.add(ids=[...], embeddings=[...], metadatas=[...],
+>     documents=[...])` — one call.
 >
 > Backed by:
 >
@@ -137,23 +156,23 @@ For each phase below:
 > Keep the index **in memory only** (do **not** set a persist directory — see `config.VECTOR_DB_PERSIST_DIR`).
 >
 > Add a retry policy for connection errors using `utils/error_handling.py`'s `handle_vector_db_error()`.
+> The retry wraps the **entire batch call**, not individual chunks.
 >
-> Wire `DocumentUploader.upload_files()` *(or a new orchestration function in `app.py`)* to call:
+> Wire `DocumentUploader.upload_files()` to call this exact pipeline:
 >
+> ```python
+> parsed_text  = parser.parse(file)
+> nlp_features = parser.extract_entities(parsed_text)
+> chunks       = splitter.split_text(parsed_text)
+> vectors      = embedder.embed_batch(chunks)          # ONE API call
+> items        = [(doc_id, v, meta) for v in vectors if v]
+> vector_db.store_embeddings_batch(items)              # ONE DB call
 > ```
-> DocParser.parse
->     ↓
-> DocParser.extract_entities
->     ↓
-> Embedder.embed
->     ↓
-> VectorDBClient.store_embedding
-> ```
 >
-> for each uploaded file, exactly matching the pseudocode in:
->
-> - PRD Section 12
-> - LLD Section 4 — *Document Upload & Indexing*
+> ⚠️ **Do NOT use a `for chunk in chunks: embed → store` loop.**
+> That approach causes N API round-trips and N DB writes per document.
+> The correct pattern above reduces this to ≈ 1 API call + 1 DB call regardless
+> of chunk count.
 >
 > Run:
 >
